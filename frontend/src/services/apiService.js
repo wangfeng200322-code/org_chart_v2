@@ -1,0 +1,19 @@
+import axios from 'axios';
+
+const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api' });
+api.interceptors.request.use((config) => {
+  const key = localStorage.getItem('apiKey');
+  if (key) config.headers['X-API-Key'] = key;
+  return config;
+});
+
+export const apiService = {
+  searchEmployees: (q) => api.get('/employees/search', { params: { q } }).then((r) => r.data),
+  getEmployeeDetails: (email) => api.get(`/employees/${encodeURIComponent(email)}`).then((r) => r.data),
+  getOrgChart: (email) => api.get('/org-chart', { params: { email } }).then((r) => r.data),
+  uploadCSV: (file) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post('/upload/csv', form).then((r) => r.data);
+  }
+};
