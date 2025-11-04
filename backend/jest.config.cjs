@@ -2,6 +2,9 @@ module.exports = {
   testEnvironment: 'node',
   transform: {},
   testMatch: ['**/tests/**/*.test.js'],
-  setupFilesAfterEnv: ['<rootDir>/tests/setupTests.js'],
   verbose: true,
+  setupFilesAfterEnv: ['<rootDir>/tests/setupTests.js'],
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js': '$1'
+  }
 };

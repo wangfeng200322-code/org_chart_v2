@@ -14,7 +14,7 @@ if (!region) {
 }
 
 // Initialize SSM client with timeout and retry config
-const ssm = new SSMClient({ 
+let ssm = new SSMClient({ 
   region,
   maxAttempts: 3,
   requestTimeout: 5000 // 5 second timeout
@@ -24,6 +24,10 @@ const ssm = new SSMClient({
 const paramPath = process.env.API_KEY_PARAM_PATH || 
   (process.env.NODE_ENV === 'production' ? '/org-chart/api-keys' : '/org-chart/dev/api-keys');
 
+// For testing purposes only
+export function setSSMClient(client) {
+  ssm = client;
+}
 /**
  * Retrieves an API key from Parameter Store
  * @param {string} key - The API key identifier
@@ -41,6 +45,7 @@ export async function getApiKeyFromParameterStore(key) {
       WithDecryption: true 
     });
     const res = await ssm.send(cmd);
+      if (!res?.Parameter?.Value) return null;
     return JSON.parse(res.Parameter.Value);
   } catch (err) {
     if (err.name === 'ParameterNotFound') {
@@ -51,6 +56,7 @@ export async function getApiKeyFromParameterStore(key) {
 }
 
 /**
+    if (!res?.Parameter?.Value) return null;
  * Stores an API key in Parameter Store
  * @param {string} keyId - The API key identifier
  * @param {string} apiKey - The API key value
