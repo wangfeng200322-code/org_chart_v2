@@ -1,17 +1,25 @@
-import AWS from 'aws-sdk';
-// Load local .env for development/test runs so AWS_REGION (and other non-secret config) is available.
-// We intentionally do not load secrets into .env; AWS credentials should come from shared credentials or environment.
+import { SSMClient, GetParameterCommand, PutParameterCommand } from '@aws-sdk/client-ssm';
 import dotenv from 'dotenv';
-dotenv.config();
 
-const AWS_REGION = process.env.AWS_REGION || 'eu-central-1';
-const ssm = new AWS.SSM({ region: AWS_REGION });
+// Load .env for non-secret config (AWS_REGION) in development environments
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
+
+// Region can come from environment or local dev .env (non-secret)
+const region = process.env.AWS_REGION;
+if (!region) {
+  // Fail early with an informative message when region is not configured.
+  throw new Error('AWS_REGION is not set. Please set AWS_REGION to the region where Parameter Store lives (e.g. eu-central-1).');
+}
+
+const ssm = new SSMClient({ region });
 const paramPath = process.env.API_KEY_PARAM_PATH || '/org-chart/api-keys';
 
 export async function getApiKeyFromParameterStore(key) {
-  // In production, we would query Parameter Store. Here assume param name equals key.
   try {
-    const res = await ssm.getParameter({ Name: `${paramPath}/${key}`, WithDecryption: true }).promise();
+    const cmd = new GetParameterCommand({ Name: `${paramPath}/${key}`, WithDecryption: true });
+    const res = await ssm.send(cmd);
     return JSON.parse(res.Parameter.Value);
   } catch (err) {
     return null;
@@ -20,11 +28,13 @@ export async function getApiKeyFromParameterStore(key) {
 
 export async function storeApiKeyInParameterStore(keyId, apiKey, role) {
   const value = JSON.stringify({ keyId, apiKey, role });
-  return ssm.putParameter({ Name: `${paramPath}/${keyId}`, Value: value, Type: 'SecureString', Overwrite: true }).promise();
+  const cmd = new PutParameterCommand({ Name: `${paramPath}/${keyId}`, Value: value, Type: 'SecureString', Overwrite: true });
+  return ssm.send(cmd);
 }
 
 export async function getParameterString(name) {
-  const res = await ssm.getParameter({ Name: name, WithDecryption: true }).promise();
+  const cmd = new GetParameterCommand({ Name: name, WithDecryption: true });
+  const res = await ssm.send(cmd);
   return res?.Parameter?.Value || null;
 }
 

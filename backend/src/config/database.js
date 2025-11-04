@@ -1,13 +1,6 @@
 import neo4j from 'neo4j-driver';
 import { getParameterString, getParameterJson } from '../services/parameterStoreService.js';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-// Load .env from backend root so tests and local runs pick up NEO4J_CONNECTION_PARAM and AWS_REGION
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+// Note: do not auto-load .env here. Credentials and AWS_REGION should be provided via environment or shared AWS config.
 
 let driver = null;
 
