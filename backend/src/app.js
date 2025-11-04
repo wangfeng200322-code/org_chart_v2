@@ -2,7 +2,6 @@ import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import { initDatabase } from './config/database.js';
 import employeeRoutes from './routes/employeeRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import healthRoutes from './routes/healthRoutes.js';
@@ -19,13 +18,7 @@ app.use('/api', apiKeyAuth, employeeRoutes);
 app.use('/api', apiKeyAuth, uploadRoutes);
 app.use('/health', healthRoutes);
 
-const PORT = process.env.PORT || 3000;
+// Error handler should be the last middleware
+app.use(errorHandler);
 
-initDatabase()
-  .then(() => {
-    app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
-  })
-  .catch((err) => {
-    console.error('Failed to initialize database', err);
-    process.exit(1);
-  });
+export default app;
