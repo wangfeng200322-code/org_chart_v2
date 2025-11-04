@@ -1,4 +1,5 @@
 import { getDriver } from '../config/database.js';
+import neo4j from 'neo4j-driver';
 
 export async function findEmployeesByName(q, { limit = 25, offset = 0 } = {}) {
   const session = getDriver().session();
@@ -10,7 +11,7 @@ export async function findEmployeesByName(q, { limit = 25, offset = 0 } = {}) {
        RETURN node AS e, score
        ORDER BY score DESC
        SKIP $skip LIMIT $limit`,
-      { q, skip: safeOffset, limit: safeLimit }
+      { q, skip: neo4j.int(safeOffset), limit: neo4j.int(safeLimit) }
     );
     return res.records.map((r) => r.get('e').properties);
   } finally {

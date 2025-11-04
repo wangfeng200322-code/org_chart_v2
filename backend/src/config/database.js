@@ -1,5 +1,13 @@
 import neo4j from 'neo4j-driver';
 import { getParameterString, getParameterJson } from '../services/parameterStoreService.js';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Load .env from backend root so tests and local runs pick up NEO4J_CONNECTION_PARAM and AWS_REGION
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 let driver = null;
 
@@ -8,13 +16,18 @@ export async function initDatabase() {
   let user = process.env.NEO4J_USER;
   let password = process.env.NEO4J_PASSWORD;
 
-  // If a single JSON parameter is provided (e.g., 'neo4j_connection_string'), read all fields from it
-  if ((!uri || !user || !password) && process.env.NEO4J_CONNECTION_PARAM) {
+  // Prefer SSM parameter when provided. If NEO4J_CONNECTION_PARAM is set, fetch and use it
+  // This ensures production / AuraDB credentials stored in SSM are used instead of any local env file.
+  if (process.env.NEO4J_CONNECTION_PARAM) {
     const conn = await getParameterJson(process.env.NEO4J_CONNECTION_PARAM);
     if (conn) {
-      uri = uri || conn.NEO4J_URI;
-      user = user || conn.NEO4J_USER;
-      password = password || conn.NEO4J_PASSWORD;
+      // Support both uppercase and lowercase keys in the stored JSON
+      uri = conn.NEO4J_URI || conn.neo4j_uri || uri;
+      user = conn.NEO4J_USER || conn.neo4j_user || user;
+      password = conn.NEO4J_PASSWORD || conn.neo4j_password || password;
+    } else {
+      // If SSM param name was provided but not found, fail fast with informative error
+      throw new Error(`NEO4J_CONNECTION_PARAM set to '${process.env.NEO4J_CONNECTION_PARAM}' but parameter not found or invalid`);
     }
   }
 
@@ -29,14 +42,41 @@ export async function initDatabase() {
     password = await getParameterString(process.env.NEO4J_PASSWORD_PARAM);
   }
 
+  if (!uri || !user || !password) {
+    throw new Error('Missing Neo4j connection information. Set NEO4J_CONNECTION_PARAM (SSM) or NEO4J_URI/NEO4J_USER/NEO4J_PASSWORD environment variables.');
+  }
+
+  // Create driver. For AuraDB the URI will typically be neo4j+s://... (encrypted). The driver will auto-configure encryption
   driver = neo4j.driver(uri, neo4j.auth.basic(user, password), { maxConnectionPoolSize: 50 });
   const session = driver.session();
 
   try {
-    // Create unique constraint for email
-    await session.run('CREATE CONSTRAINT employee_email_unique IF NOT EXISTS FOR (e:Employee) REQUIRE e.email IS UNIQUE');
-    // Create full-text index for flexible search
-    await session.run('CREATE FULLTEXT INDEX employee_search IF NOT EXISTS FOR (e:Employee) ON EACH [e.first_name, e.last_name, e.email]');
+    // Helper: retry transient DB initialization errors (locks, contention)
+    const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+    const maxAttempts = 6;
+
+    let attempt = 0;
+    while (true) {
+      attempt += 1;
+      try {
+        // Create unique constraint for email
+        await session.run('CREATE CONSTRAINT employee_email_unique IF NOT EXISTS FOR (e:Employee) REQUIRE e.email IS UNIQUE');
+        // Create full-text index for flexible search
+        await session.run('CREATE FULLTEXT INDEX employee_search IF NOT EXISTS FOR (e:Employee) ON EACH [e.first_name, e.last_name, e.email]');
+        break;
+      } catch (err) {
+        // If we've exhausted retries or the error is non-transient, rethrow
+  const errText = String(err.message || err).toLowerCase();
+  const isLockErr = errText.includes('lock') || errText.includes("can't acquire");
+        if (!isLockErr || attempt >= maxAttempts) {
+          throw err;
+        }
+        // Exponential backoff with jitter
+        const backoff = Math.min(2000 * Math.pow(2, attempt - 1), 10000);
+        const jitter = Math.floor(Math.random() * 300);
+        await sleep(backoff + jitter);
+      }
+    }
   } finally {
     await session.close();
   }

@@ -1,6 +1,11 @@
 import AWS from 'aws-sdk';
+// Load local .env for development/test runs so AWS_REGION (and other non-secret config) is available.
+// We intentionally do not load secrets into .env; AWS credentials should come from shared credentials or environment.
+import dotenv from 'dotenv';
+dotenv.config();
 
-const ssm = new AWS.SSM({ region: process.env.AWS_REGION });
+const AWS_REGION = process.env.AWS_REGION || 'eu-central-1';
+const ssm = new AWS.SSM({ region: AWS_REGION });
 const paramPath = process.env.API_KEY_PARAM_PATH || '/org-chart/api-keys';
 
 export async function getApiKeyFromParameterStore(key) {
