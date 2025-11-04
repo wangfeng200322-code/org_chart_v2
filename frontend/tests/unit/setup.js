@@ -1,11 +1,16 @@
 import { config } from '@vue/test-utils'
+import { beforeAll } from 'vitest'
 
-// Add any global Vue test configuration here
-config.global.mocks = {
-  // Add any global mocks here
-}
+// Configure Vue Test Utils
+beforeAll(() => {
+  config.global.mocks = {
+    // Add any global mocks here
+  }
 
-// Add any global stubs here
-config.global.stubs = {
-  // Add any global stubs here
-}
+  config.global.stubs = {
+    // Add any global stubs here
+  }
+})
+
+// Mock window.URL.createObjectURL
+window.URL.createObjectURL = vi.fn()
