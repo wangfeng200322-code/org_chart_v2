@@ -42,21 +42,55 @@ export async function getOrgChart(email) {
   }
 }
 
-export async function batchCreateEmployees(rows) {
-  const session = getDriver().session();
-  try {
-    const txc = session.beginTransaction();
-    for (const row of rows) {
-      await txc.run(
-        `MERGE (e:Employee {email: $email})
-         SET e.first_name = $first_name, e.last_name = $last_name, e.phone = $phone, e.department = $department, e.role = $role, e.salary = $salary`,
-        row
-      );
+// removed unused batchCreateEmployees in favor of importEmployees
+
+export async function importEmployees(rows) {
+  const driver = getDriver();
+  const chunkSize = 1000;
+  let imported = 0;
+
+  for (let i = 0; i < rows.length; i += chunkSize) {
+    const chunk = rows.slice(i, i + chunkSize).map((r) => ({
+      first_name: r.first_name || null,
+      last_name: r.last_name || null,
+      email: r.email,
+      phone: r.phone || null,
+      home_address: r.home_address || null,
+      department: r.department || null,
+      role: r.role || null,
+      salary: r.salary != null && r.salary !== '' ? Number(r.salary) : null,
+      manager_name: r.manager_name || null,
+      manager_email: r.manager_email || null
+    }));
+
+    const session = driver.session();
+    try {
+      await session.writeTransaction(async (tx) => {
+        await tx.run(
+          `UNWIND $rows AS row
+           MERGE (e:Employee {email: row.email})
+           SET e.first_name = row.first_name,
+               e.last_name = row.last_name,
+               e.phone = row.phone,
+               e.home_address = row.home_address,
+               e.department = row.department,
+               e.role = row.role,
+               e.salary = row.salary
+           WITH row, e
+           WHERE row.manager_email IS NOT NULL AND row.manager_email <> ''
+           MERGE (m:Employee {email: row.manager_email})
+           SET m.first_name = coalesce(m.first_name, row.manager_name)
+           MERGE (m)-[:MANAGES]->(e)`,
+          { rows: chunk }
+        );
+      });
+      imported += chunk.length;
+    } finally {
+      await session.close();
     }
-    await txc.commit();
-  } finally {
-    await session.close();
   }
+
+  return imported;
 }
 
 export async function getCEO() {
