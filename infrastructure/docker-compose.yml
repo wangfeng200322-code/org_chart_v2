@@ -1,19 +1,34 @@
-version: '3.8'
 
 services:
   backend:
-    build: ./backend
+    # Option 1: Use pre-built image (uncomment after building)
+    # image: org-chart-backend:latest
+    # Option 2: Build from source (current)
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
     ports:
       - "3000:3000"
     environment:
-      - AWS_REGION=${AWS_REGION:-eu-central-1}
-      - NEO4J_CONNECTION_PARAM=${NEO4J_CONNECTION_PARAM:-/org-chart/neo4j_connection_string}
+      # For local dev: use local Neo4j
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=testpassword
+      # OR use SSM (for AWS deployment):
+      # - AWS_REGION=${AWS_REGION:-eu-central-1}
+      # - NEO4J_CONNECTION_PARAM=${NEO4J_CONNECTION_PARAM:-/org-chart/neo4j_connection_string}
       - API_KEY_PARAM_PATH=${API_KEY_PARAM_PATH:-/org-chart/api-keys}
+      - TEST_API_KEY=${TEST_API_KEY:-dev-key}
     depends_on:
       - neo4j
 
   frontend:
-    build: ./frontend
+    # Option 1: Use pre-built image (uncomment after building)
+    # image: org-chart-frontend:latest
+    # Option 2: Build from source (current)
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
     ports:
       - "8080:80"
     depends_on:
