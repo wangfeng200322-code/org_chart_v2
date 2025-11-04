@@ -2,12 +2,62 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
 
 jobs:
-  backend-tests:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Backend install
+        working-directory: backend
+        run: npm ci
+
+      - name: Frontend install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Backend tests (skip DB dependent)
+        working-directory: backend
+        env:
+          SKIP_DB_TESTS: '1'
+          TEST_API_KEY: test-key
+        run: npm test --silent
+
+      - name: Frontend build
+        working-directory: frontend
+        env:
+          VITE_API_URL: http://localhost:3000/api
+        run: npm run build --silent
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: false
+          tags: local/org-chart-backend:ci
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: false
+          tags: local/org-chart-frontend:ci
+
+  Backend_tests:
     runs-on: ubuntu-latest
     
     services:
@@ -25,7 +75,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '22'
           
       - name: Install backend dependencies
         run: |
@@ -59,7 +109,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '22'
           
       - name: Install frontend dependencies
         run: |
@@ -89,7 +139,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '22'
           
       - name: Install Playwright
         run: |
