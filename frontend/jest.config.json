@@ -1,0 +1,21 @@
+{
+  "transform": {
+    "^.+\\.vue$": "@vue/vue3-jest",
+    "^.+\\.(js|jsx)$": "babel-jest"
+  },
+  "testEnvironment": "jsdom",
+  "testEnvironmentOptions": {
+    "customExportConditions": ["node", "node-addons"]
+  },
+  "moduleFileExtensions": ["vue", "js", "json"],
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/src/$1"
+  },
+  "testMatch": [
+    "<rootDir>/tests/unit/**/*.spec.[jt]s?(x)"
+  ],
+  "transformIgnorePatterns": [
+    "/node_modules/(?![@autofiy/autofiyable|@autofiy/property]).+\\.js$"
+  ],
+  "setupFiles": ["<rootDir>/tests/unit/setup.js"]
+}
