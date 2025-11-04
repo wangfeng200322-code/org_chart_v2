@@ -29,19 +29,33 @@ export async function getEmployeeByEmail(email) {
   }
 }
 
-export async function getOrgChart(email) {
+export async function getOrgChart(email, depth = 2) {
   const session = getDriver().session();
+  const safeDepth = Math.max(1, Math.min(Number(depth) || 2, 3));
+  const cypher = `
+    MATCH (focus:Employee {email: $email})
+    OPTIONAL MATCH pUp = (m:Employee)-[:MANAGES*1..${safeDepth}]->(focus)
+    OPTIONAL MATCH pDown = (focus)-[:MANAGES*1..${safeDepth}]->(r:Employee)
+    WITH focus,
+         collect(nodes(pUp)) AS upNodes, collect(relationships(pUp)) AS upRels,
+         collect(nodes(pDown)) AS downNodes, collect(relationships(pDown)) AS downRels
+    WITH focus,
+         upNodes + downNodes AS nodeLists,
+         upRels + downRels AS relLists
+    UNWIND nodeLists AS nl
+    UNWIND nl AS n
+    WITH collect(DISTINCT n) + [focus] AS nodes, relLists
+    UNWIND relLists AS rl
+    UNWIND rl AS r
+    WITH nodes, collect(DISTINCT r) AS rels
+    RETURN [n IN nodes | n { .email, .first_name, .last_name, .department, .role }] AS nodes,
+           [r IN rels | { source: startNode(r).email, target: endNode(r).email }] AS edges
+  `;
   try {
-    const res = await session.run(
-      'MATCH path = (manager:Employee)-[:MANAGES*0..5]->(e:Employee {email: $email}) RETURN nodes(path) as nodes',
-      { email }
-    );
-    // Simplified conversion
-    let nodes = [];
-    res.records.forEach((r) => {
-      r.get('nodes').forEach((n) => nodes.push(n.properties));
-    });
-    return { nodes };
+    const res = await session.run(cypher, { email });
+    if (res.records.length === 0) return { nodes: [], edges: [] };
+    const record = res.records[0];
+    return { nodes: record.get('nodes'), edges: record.get('edges') };
   } finally {
     await session.close();
   }

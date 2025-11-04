@@ -25,7 +25,8 @@ export async function details(req, res, next) {
 export async function orgChart(req, res, next) {
   try {
     const email = req.query.email;
-    const chart = await getOrgChart(email);
+    const depth = parseInt(req.query.depth, 10) || 2;
+    const chart = await getOrgChart(email, depth);
     res.json({ success: true, data: chart });
   } catch (err) {
     next(err);
