@@ -11,10 +11,6 @@ export async function initDatabase() {
   const session = driver.session();
 
   try {
-    // Drop obsolete name index if it exists
-    await session.run('DROP INDEX name_index IF EXISTS');
-    // Drop old non-unique email index if it exists (we will create a unique constraint instead)
-    await session.run('DROP INDEX email_index IF EXISTS');
     // Create unique constraint for email
     await session.run('CREATE CONSTRAINT employee_email_unique IF NOT EXISTS FOR (e:Employee) REQUIRE e.email IS UNIQUE');
     // Create full-text index for flexible search
