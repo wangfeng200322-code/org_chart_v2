@@ -19,6 +19,14 @@ if [ -n "${repo_url}" ]; then
   git clone "${repo_url}" repo
   cd repo
   git checkout "${repo_branch}"
+  # Export env for backend container
+  export AWS_REGION=${AWS_REGION:-$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .region || echo "eu-central-1")}
+  export NEO4J_CONNECTION_PARAM=${NEO4J_CONNECTION_PARAM:-"/org-chart/neo4j_connection_string"}
+  export API_KEY_PARAM_PATH=${API_KEY_PARAM_PATH:-"/org-chart/api-keys"}
+  # Pass env vars to compose
+  echo "AWS_REGION=$AWS_REGION" > .env
+  echo "NEO4J_CONNECTION_PARAM=$NEO4J_CONNECTION_PARAM" >> .env
+  echo "API_KEY_PARAM_PATH=$API_KEY_PARAM_PATH" >> .env
   docker compose -f infrastructure/docker-compose.yml up -d --build
 else
   echo "No repo_url provided, skipping deployment"
