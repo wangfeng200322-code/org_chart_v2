@@ -17,3 +17,18 @@ export async function storeApiKeyInParameterStore(keyId, apiKey, role) {
   const value = JSON.stringify({ keyId, apiKey, role });
   return ssm.putParameter({ Name: `${paramPath}/${keyId}`, Value: value, Type: 'SecureString', Overwrite: true }).promise();
 }
+
+export async function getParameterString(name) {
+  const res = await ssm.getParameter({ Name: name, WithDecryption: true }).promise();
+  return res?.Parameter?.Value || null;
+}
+
+export async function getParameterJson(name) {
+  const value = await getParameterString(name);
+  if (!value) return null;
+  try {
+    return JSON.parse(value);
+  } catch (_) {
+    return null;
+  }
+}

@@ -1,0 +1,27 @@
+#!/bin/bash
+set -euxo pipefail
+
+dnf update -y
+dnf install -y docker git
+systemctl enable docker
+systemctl start docker
+
+# Install docker compose plugin
+DOCKER_CONFIG=${DOCKER_CONFIG:-/usr/lib/docker}
+mkdir -p /usr/local/lib/docker/cli-plugins/
+curl -SL https://github.com/docker/compose/releases/download/v2.29.2/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+mkdir -p /opt/app
+cd /opt/app
+
+if [ -n "${repo_url}" ]; then
+  git clone "${repo_url}" repo
+  cd repo
+  git checkout "${repo_branch}"
+  docker compose -f infrastructure/docker-compose.yml up -d --build
+else
+  echo "No repo_url provided, skipping deployment"
+fi
+
+

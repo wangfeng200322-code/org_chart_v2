@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api' });
 api.interceptors.request.use((config) => {
-  const key = localStorage.getItem('apiKey');
+  const key = sessionStorage.getItem('apiKey') || localStorage.getItem('apiKey') || getCookie('apiKey');
   if (key) config.headers['X-API-Key'] = key;
   return config;
 });
@@ -17,3 +17,10 @@ export const apiService = {
     return api.post('/upload/csv', form).then((r) => r.data);
   }
 };
+
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return null;
+}

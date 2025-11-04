@@ -9,6 +9,7 @@
         <button @click="currentView = 'upload'" :class="{ active: currentView === 'upload' }" v-if="isAdmin">
           Upload CSV
         </button>
+        <ApiKeyPanel />
       </nav>
     </header>
 
@@ -37,6 +38,7 @@ import EmployeeSearch from './components/EmployeeSearch.vue';
 import EmployeeDetails from './components/EmployeeDetails.vue';
 import OrgChart from './components/OrgChart.vue';
 import CSVUpload from './components/CSVUpload.vue';
+import ApiKeyPanel from './components/ApiKeyPanel.vue';
 
 const currentView = ref('search');
 const selectedEmployee = ref(null);
