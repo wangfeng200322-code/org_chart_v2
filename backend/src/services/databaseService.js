@@ -1,11 +1,16 @@
 import { getDriver } from '../config/database.js';
 
-export async function findEmployeesByName(q) {
+export async function findEmployeesByName(q, { limit = 25, offset = 0 } = {}) {
   const session = getDriver().session();
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 25, 100));
+  const safeOffset = Math.max(0, Number(offset) || 0);
   try {
     const res = await session.run(
-      'MATCH (e:Employee) WHERE toLower(e.first_name) CONTAINS toLower($q) OR toLower(e.last_name) CONTAINS toLower($q) RETURN e LIMIT 25',
-      { q }
+      `CALL db.index.fulltext.queryNodes('employee_search', $q) YIELD node, score
+       RETURN node AS e, score
+       ORDER BY score DESC
+       SKIP $skip LIMIT $limit`,
+      { q, skip: safeOffset, limit: safeLimit }
     );
     return res.records.map((r) => r.get('e').properties);
   } finally {

@@ -3,7 +3,9 @@ import { findEmployeesByName, getEmployeeByEmail, getOrgChart } from '../service
 export async function search(req, res, next) {
   try {
     const q = req.query.q || '';
-    const results = await findEmployeesByName(q);
+    const limit = parseInt(req.query.limit, 10) || 25;
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const results = await findEmployeesByName(q, { limit, offset });
     res.json({ success: true, data: results });
   } catch (err) {
     next(err);
