@@ -5,6 +5,7 @@ import bodyParser from 'body-parser';
 import rateLimit from 'express-rate-limit';
 import employeeRoutes from './routes/employeeRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
 import healthRoutes from './routes/healthRoutes.js';
 import { apiKeyAuth } from './middleware/apiKeyAuth.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -32,6 +33,7 @@ app.use('/api', apiLimiter);
 logger.debug('Setting up API routes with authentication middleware');
 app.use('/api', apiKeyAuth, employeeRoutes);
 app.use('/api', apiKeyAuth, uploadRoutes);
+app.use('/api/reports', apiKeyAuth, reportRoutes);
 app.use('/health', healthRoutes);
 
 logger.debug('Setting up error handler middleware');

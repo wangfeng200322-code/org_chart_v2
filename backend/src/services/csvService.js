@@ -35,14 +35,21 @@ export function parseAndValidateCSV(csv) {
     const errs = validateEmployeeRow(cleaned);
     if (isCEO(cleaned)) ceoCount += 1;
     if (errs.length > 0) {
-      errors.push({ row: idx + 1, errors: errs });
+      errors.push({ 
+        row: idx + 1, 
+        errors: errs,
+        data: r // Include original data for reporting
+      });
     } else {
       valid.push(cleaned);
     }
   });
 
   if (ceoCount !== 1) {
-    errors.push({ row: 'file', errors: [`exactly one CEO required (rows with empty manager_name and manager_email): found ${ceoCount}`] });
+    errors.push({ 
+      row: 'file', 
+      errors: [`exactly one CEO required (rows with empty manager_name and manager_email): found ${ceoCount}`] 
+    });
   }
 
   // If CEO constraint violated, do not import any

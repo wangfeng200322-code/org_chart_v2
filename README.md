@@ -7,6 +7,7 @@ A modern organization chart management system built with Vue 3, Node.js, and Neo
 - **Admin Features:**
   - Upload CSV files to batch import employees
   - Manage employee data in Neo4j graph database
+  - Automatic generation of success/failure reports for CSV uploads
 
 - **User Features:**
   - Search employees by first name, last name, or full name
@@ -49,6 +50,22 @@ This caching layer significantly reduces database load and improves response tim
 ## Getting Started
 
 For detailed instructions on setting up the application locally, please refer to our [Local Setup Guide](LOCAL_SETUP.md).
+
+## CSV Upload Reporting
+
+When uploading CSV files, the system automatically generates detailed reports:
+
+1. **Success Report**: Contains the identifiers (first name, last name, email) of all successfully processed employee records
+2. **Failure Report**: Contains the identifiers and specific error reasons for records that failed validation
+3. **Summary Report**: Overall statistics of the upload process
+
+Reports are stored in the `reports` directory and can be accessed via the `/api/reports` endpoint by administrators.
+
+### Report Format
+
+- Success reports are CSV files containing employee identifiers that were successfully processed
+- Failure reports are CSV files containing employee identifiers with additional error columns
+- Summary reports are text files with overall statistics and any general errors
 
 ## Project Structure
 
