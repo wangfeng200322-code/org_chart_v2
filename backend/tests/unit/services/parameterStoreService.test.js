@@ -1,13 +1,14 @@
-import { jest } from '@jest/globals';
+import { describe, beforeEach, it, expect, vi } from 'vitest';
+import { SSMClient, GetParameterCommand, PutParameterCommand } from '@aws-sdk/client-ssm';
 
-// Prepare mocks before importing the module under test (ESM requirement)
-const mockSend = jest.fn();
+// Prepare mocks before importing the module under test
+const mockSend = vi.fn();
 const mockClient = { send: mockSend };
 
-jest.mock('@aws-sdk/client-ssm', () => ({
-  SSMClient: jest.fn(() => mockClient),
-  GetParameterCommand: jest.fn(),
-  PutParameterCommand: jest.fn()
+vi.mock('@aws-sdk/client-ssm', () => ({
+  SSMClient: vi.fn(() => mockClient),
+  GetParameterCommand: vi.fn(),
+  PutParameterCommand: vi.fn()
 }));
 
 // Import after mocks are set up
@@ -15,7 +16,7 @@ import * as parameterStoreService from '../../../src/services/parameterStoreServ
 
 describe('parameterStoreService (ESM mocks)', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // ensure the service uses our mock client
     parameterStoreService.setSSMClient(mockClient);
   });

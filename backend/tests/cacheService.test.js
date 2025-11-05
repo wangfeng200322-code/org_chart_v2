@@ -1,21 +1,13 @@
 /**
  * @jest-environment node
  */
-
-// Mock all modules that might cause issues during testing
-jest.mock('../src/services/parameterStoreService.js', () => ({
-  getParameterString: jest.fn(),
-  getParameterJson: jest.fn()
-}));
-
-// Mock the database module to avoid Neo4j connection
-jest.mock('../src/config/database.js', () => ({
-  getDriver: jest.fn(),
-  initDatabase: jest.fn(),
-  closeDatabase: jest.fn()
-}));
-
+import { vi, describe, beforeEach, afterEach, it, expect } from 'vitest';
 import cacheService from '../src/services/cacheService.js';
+import { getParameterString, getParameterJson } from '../src/services/parameterStoreService.js';
+import { getDriver, initDatabase, closeDatabase } from '../src/config/database.js';
+
+vi.mock('../src/services/parameterStoreService.js');
+vi.mock('../src/config/database.js');
 
 describe('Cache Service', () => {
   beforeEach(async () => {
