@@ -1,6 +1,27 @@
-version: '3.8'
 
 services:
+  neo4j:
+    image: neo4j:5.13
+    environment:
+      - NEO4J_AUTH=neo4j/orgchart-neo4j-strong-password
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      - server.bolt.enabled=true
+      - server.bolt.listen_address=0.0.0.0:7687
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    # Add volume for data persistence
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 40s  # Give Neo4j time to start
+  
   backend:
     # Option 1: Use pre-built image (uncomment after building)
     # image: org-chart-backend:latest
@@ -14,7 +35,7 @@ services:
       # For local dev: use local Neo4j
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
-      - NEO4J_PASSWORD=testpassword
+      - NEO4J_PASSWORD=orgchart-neo4j-strong-password
       # OR use SSM (for AWS deployment):
       - AWS_REGION=${AWS_REGION:-eu-central-1}
       # Optional: NEO4J connection info from SSM
@@ -22,7 +43,8 @@ services:
       - API_KEY_PARAM_PATH=${API_KEY_PARAM_PATH:-/org-chart/api-keys}
       - TEST_API_KEY=${TEST_API_KEY:-dev-key}
     depends_on:
-      - neo4j
+      neo4j:
+        condition: service_healthy  # Wait for Neo4j to be healthy
     # Add volumes to prevent node_modules issues
     volumes:
       - ../backend:/app
@@ -44,18 +66,7 @@ services:
       - ../frontend:/app
       - /app/node_modules
 
-  neo4j:
-    image: neo4j:5
-    environment:
-      NEO4J_AUTH: "neo4j/testpassword"
-    ports:
-      - "7474:7474"
-      - "7687:7687"
-    # Add volume for data persistence
-    volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
-      - neo4j_import:/var/lib/neo4j/import
+  
 
 # Define named volumes
 volumes:
