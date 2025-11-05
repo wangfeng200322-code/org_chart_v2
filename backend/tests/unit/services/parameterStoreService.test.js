@@ -1,15 +1,24 @@
 import { describe, beforeEach, it, expect, vi } from 'vitest';
 import { SSMClient, GetParameterCommand, PutParameterCommand } from '@aws-sdk/client-ssm';
 
-// Prepare mocks before importing the module under test
-const mockSend = vi.fn();
-const mockClient = { send: mockSend };
+// Mock the AWS SDK
+vi.mock('@aws-sdk/client-ssm', () => {
+  const mockSend = vi.fn();
+  const mockClient = { send: mockSend };
+  
+  return {
+    SSMClient: function() {
+      return mockClient;
+    },
+    GetParameterCommand: class {},
+    PutParameterCommand: class {},
+    __mockSend: mockSend, // Expose mock for tests
+    __mockClient: mockClient // Expose client for tests
+  };
+});
 
-vi.mock('@aws-sdk/client-ssm', () => ({
-  SSMClient: vi.fn(() => mockClient),
-  GetParameterCommand: vi.fn(),
-  PutParameterCommand: vi.fn()
-}));
+// Import AWS SDK to get mock functions
+const { __mockSend: mockSend, __mockClient: mockClient } = await import('@aws-sdk/client-ssm');
 
 // Import after mocks are set up
 import * as parameterStoreService from '../../../src/services/parameterStoreService.js';

@@ -1,19 +1,16 @@
-import { initDatabase, closeDatabase } from '../src/config/database.js';
+import { vi } from 'vitest';
+import * as databaseMock from './mocks/database.js';
 
-const skip = process.env.SKIP_DB_TESTS === '1';
+// Ensure we have AWS_REGION set for parameterStore tests
+process.env.AWS_REGION = process.env.AWS_REGION || 'eu-central-1';
+
+// Mock the database module
+vi.mock('../src/config/database.js', () => databaseMock);
+
+// Expose mock data for tests
+export const mockEmployees = databaseMock.mockEmployees;
 
 beforeAll(async () => {
-  if (skip) {
-    // Tests that require DB are skipped by environment flag
-    return;
-  }
-
-  // Initialize the database connection for integration tests
-  // initDatabase will read NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD from env
-  await initDatabase();
-});
-
-afterAll(async () => {
-  if (skip) return;
-  await closeDatabase();
+  // Environment is fully mocked
+  return Promise.resolve();
 });
