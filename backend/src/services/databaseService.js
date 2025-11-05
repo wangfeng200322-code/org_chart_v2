@@ -1,6 +1,7 @@
 import { getDriver } from '../config/database.js';
 import neo4j from 'neo4j-driver';
 import cacheService from './cacheService.js';
+import logger from '../utils/logger.js';
 
 export async function findEmployeesByName(q, { limit = 25, offset = 0 } = {}) {
   const cacheKey = `search:${q}:${limit}:${offset}`;
@@ -168,13 +169,25 @@ export async function getCEO() {
 }
 
 export async function healthCheck() {
+  logger.debug('Database health check called');
+  
   try {
     const driver = getDriver();
+    logger.debug('Got database driver');
+    
     const session = driver.session();
+    logger.debug('Created database session');
+    
     await session.run('RETURN 1');
+    logger.debug('Database query executed successfully');
+    
     await session.close();
+    logger.debug('Database session closed');
+    
+    logger.info('Database health check passed');
     return true;
-  } catch (_) {
+  } catch (error) {
+    logger.error('Database health check failed:', error);
     return false;
   }
 }
