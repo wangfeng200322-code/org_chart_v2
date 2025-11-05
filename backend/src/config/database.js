@@ -39,8 +39,20 @@ export async function initDatabase() {
     throw new Error('Missing Neo4j connection information. Set NEO4J_CONNECTION_PARAM (SSM) or NEO4J_URI/NEO4J_USER/NEO4J_PASSWORD environment variables.');
   }
 
-  // Create driver. For AuraDB the URI will typically be neo4j+s://... (encrypted). The driver will auto-configure encryption
-  driver = neo4j.driver(uri, neo4j.auth.basic(user, password), { maxConnectionPoolSize: 50 });
+  // Create driver with proper encryption settings for Neo4j 5
+  // For local development with Neo4j 5 in Docker, we need to disable encryption
+  const isLocalUri = uri.includes('bolt://') && (uri.includes('localhost') || uri.includes('127.0.0.1') || uri.includes('neo4j'));
+  const driverConfig = isLocalUri 
+    ? { 
+        maxConnectionPoolSize: 50,
+        encrypted: false // Disable encryption for local development
+      }
+    : { 
+        maxConnectionPoolSize: 50
+        // Use default encryption settings for remote/AuraDB connections
+      };
+
+  driver = neo4j.driver(uri, neo4j.auth.basic(user, password), driverConfig);
   const session = driver.session();
 
   try {
@@ -59,8 +71,8 @@ export async function initDatabase() {
         break;
       } catch (err) {
         // If we've exhausted retries or the error is non-transient, rethrow
-  const errText = String(err.message || err).toLowerCase();
-  const isLockErr = errText.includes('lock') || errText.includes("can't acquire");
+        const errText = String(err.message || err).toLowerCase();
+        const isLockErr = errText.includes('lock') || errText.includes("can't acquire");
         if (!isLockErr || attempt >= maxAttempts) {
           throw err;
         }

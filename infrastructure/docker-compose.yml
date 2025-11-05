@@ -16,7 +16,8 @@ services:
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=testpassword
       # OR use SSM (for AWS deployment):
-      # - AWS_REGION=${AWS_REGION:-eu-central-1}
+      - AWS_REGION=${AWS_REGION:-eu-central-1}
+      # Optional: NEO4J connection info from SSM
       # - NEO4J_CONNECTION_PARAM=${NEO4J_CONNECTION_PARAM:-/org-chart/neo4j_connection_string}
       - API_KEY_PARAM_PATH=${API_KEY_PARAM_PATH:-/org-chart/api-keys}
       - TEST_API_KEY=${TEST_API_KEY:-dev-key}

@@ -18,6 +18,8 @@ import { ref, onMounted } from 'vue';
 const apiKey = ref('');
 const storage = ref('session');
 
+const emit = defineEmits(['key-saved']);
+
 onMounted(() => {
   const existing = sessionStorage.getItem('apiKey') || localStorage.getItem('apiKey') || getCookie('apiKey') || '';
   if (existing) apiKey.value = existing;
@@ -29,6 +31,9 @@ function save() {
   if (storage.value === 'session') sessionStorage.setItem('apiKey', apiKey.value);
   else if (storage.value === 'local') localStorage.setItem('apiKey', apiKey.value);
   else if (storage.value === 'cookie') document.cookie = `apiKey=${apiKey.value}; path=/; SameSite=Lax`;
+  
+  // Emit event to notify parent component
+  emit('key-saved');
 }
 
 function clearKey() {
@@ -52,5 +57,3 @@ function getCookie(name) {
 .hint { font-size: 0.85rem; color: #666; margin-top: 0.25rem; }
 .secondary { background: #eee; }
 </style>
-
-

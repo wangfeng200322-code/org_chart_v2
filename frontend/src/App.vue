@@ -9,7 +9,7 @@
         <button @click="currentView = 'upload'" :class="{ active: currentView === 'upload' }" v-if="isAdmin">
           Upload CSV
         </button>
-        <ApiKeyPanel />
+        <ApiKeyPanel @key-saved="checkAuth" />
       </nav>
     </header>
 
@@ -50,8 +50,10 @@ onMounted(() => {
 });
 
 function checkAuth() {
-  const apiKey = localStorage.getItem('apiKey');
-  isAdmin.value = localStorage.getItem('userRole') === 'admin';
+  const apiKey = localStorage.getItem('apiKey') || sessionStorage.getItem('apiKey') || getCookie('apiKey');
+  // In a real application, you would verify the key with the backend
+  // For now, we'll just check if a key exists
+  isAdmin.value = !!apiKey;
 }
 
 function handleEmployeeSelected(employee) {
@@ -73,6 +75,13 @@ function handleNodeClicked(nodeData) {
     selectedEmployeeEmail.value = nodeData;
   }
   // The watch in OrgChart component will reload the chart
+}
+
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return null;
 }
 </script>
 
@@ -100,33 +109,32 @@ header h1 {
 nav {
   display: flex;
   gap: 1rem;
+  align-items: center;
 }
 
-nav button {
-  background: transparent;
-  border: 2px solid white;
-  color: white;
+button {
   padding: 0.5rem 1rem;
+  border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.3s;
+  background: #3498db;
+  color: white;
+  font-weight: bold;
 }
 
-nav button:hover {
-  background: white;
-  color: #2c3e50;
+button:hover {
+  background: #2980b9;
 }
 
-nav button.active {
-  background: white;
-  color: #2c3e50;
+button.active {
+  background: #e74c3c;
 }
 
-main {
-  flex: 1;
-  padding: 2rem;
-  max-width: 1400px;
-  width: 100%;
-  margin: 0 auto;
+button.secondary {
+  background: #95a5a6;
+}
+
+button.secondary:hover {
+  background: #7f8c8d;
 }
 </style>
