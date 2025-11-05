@@ -1,3 +1,4 @@
+version: '3.8'
 
 services:
   backend:
@@ -5,8 +6,8 @@ services:
     # image: org-chart-backend:latest
     # Option 2: Build from source (current)
     build:
-      context: ..
-      dockerfile: backend/Dockerfile
+      context: ../backend
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
@@ -21,18 +22,26 @@ services:
       - TEST_API_KEY=${TEST_API_KEY:-dev-key}
     depends_on:
       - neo4j
+    # Add volumes to prevent node_modules issues
+    volumes:
+      - ../backend:/app
+      - /app/node_modules
 
   frontend:
     # Option 1: Use pre-built image (uncomment after building)
     # image: org-chart-frontend:latest
     # Option 2: Build from source (current)
     build:
-      context: ..
-      dockerfile: frontend/Dockerfile
+      context: ../frontend
+      dockerfile: Dockerfile
     ports:
       - "8080:80"
     depends_on:
       - backend
+    # Add volumes to prevent node_modules issues
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
 
   neo4j:
     image: neo4j:5
@@ -41,3 +50,14 @@ services:
     ports:
       - "7474:7474"
       - "7687:7687"
+    # Add volume for data persistence
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+
+# Define named volumes
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:

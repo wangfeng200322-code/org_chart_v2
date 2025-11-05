@@ -46,6 +46,10 @@ This caching layer significantly reduces database load and improves response tim
 - Playwright (E2E tests)
 - Target: 95% unit test coverage
 
+## Getting Started
+
+For detailed instructions on setting up the application locally, please refer to our [Local Setup Guide](LOCAL_SETUP.md).
+
 ## Project Structure
 
 ```
