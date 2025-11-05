@@ -30,3 +30,4 @@ Thumbs.db
 cursor-output.txt
 NOTES.md
 */.env
+node_modules

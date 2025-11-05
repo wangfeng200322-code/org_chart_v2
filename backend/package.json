@@ -9,22 +9,22 @@
     "test:api": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand --config ./jest.config.cjs"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "helmet": "^6.0.0",
-    "cors": "^2.8.5",
-    "body-parser": "^1.20.2",
-    "neo4j-driver": "^5.14.0",
-    "csv-parse": "^5.3.0",
-    "multer": "^1.4.5-lts.1",
-    "winston": "^3.9.0",
-    "aws-sdk": "^2.1410.0",
     "@aws-sdk/client-ssm": "^3.500.0",
+    "aws-sdk": "^2.1410.0",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "csv-parse": "^5.3.0",
     "dotenv": "^16.3.1",
-    "express-rate-limit": "^6.11.2"
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.11.2",
+    "helmet": "^6.0.0",
+    "multer": "^1.4.5-lts.1",
+    "neo4j-driver": "^5.14.0",
+    "winston": "^3.9.0"
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "supertest": "^6.3.3",
-    "nodemon": "^2.0.22"
+    "nodemon": "^3.1.10",
+    "supertest": "^6.3.3"
   }
 }
