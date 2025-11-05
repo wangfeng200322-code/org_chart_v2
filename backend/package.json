@@ -5,8 +5,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "cross-env AWS_REGION=eu-central-1 vitest run",
-    "test:api": "cross-env AWS_REGION=eu-central-1 vitest run --sequence.concurrent=false"
+    "test": "vitest run",
+    "test:api": "vitest run --sequence.concurrent=false"
   },
   "dependencies": {
     "@aws-sdk/client-ssm": "^3.500.0",

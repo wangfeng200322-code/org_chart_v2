@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: eu-central-1
+      SKIP_DB_TESTS: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -49,6 +49,7 @@ try {
     
     # Run backend tests (skip DB dependent)
     $env:SKIP_DB_TESTS = '1'
+    $env:AWS_REGION = 'eu-central-1'
     Run-Command "Set-Location -Path 'backend'; npm run test" "backend tests (skip DB dependent)"
     Set-Location -Path ".."
     
