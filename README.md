@@ -51,6 +51,22 @@ This caching layer significantly reduces database load and improves response tim
 
 For detailed instructions on setting up the application locally, please refer to our [Local Setup Guide](LOCAL_SETUP.md).
 
+## CSV Upload Format
+
+The CSV file must include the following columns:
+- `first_name` (required)
+- `last_name` (required)
+- `email` (required, must be valid)
+- `phone`
+- `home_address`
+- `department`
+- `role` (required)
+- `salary`
+- `manager_name` (required for non-CEO employees)
+- `manager_email`
+
+See [sample_employees.csv](sample_employees.csv) for a complete example.
+
 ## CSV Upload Reporting
 
 When uploading CSV files, the system automatically generates detailed reports:

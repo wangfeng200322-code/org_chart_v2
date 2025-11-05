@@ -31,3 +31,5 @@ cursor-output.txt
 NOTES.md
 */.env
 node_modules
+backend/reports/*.*
+sample*.csv
