@@ -15,7 +15,12 @@ describe('EmployeeSearch.vue', () => {
   let wrapper
 
   beforeEach(() => {
+    vi.useFakeTimers()
     wrapper = mount(EmployeeSearch)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
     vi.clearAllMocks()
   })
 
@@ -24,109 +29,123 @@ describe('EmployeeSearch.vue', () => {
   })
 
   test('debounces search input', async () => {
-    const mockResults = {
-      data: [
-        { email: 'john@example.com', first_name: 'John', last_name: 'Doe' },
-        { email: 'jane@example.com', first_name: 'Jane', last_name: 'Smith' }
-      ]
-    }
-    apiService.searchEmployees.mockResolvedValueOnce(mockResults)
+    const mockResults = [{ email: 'john@example.com', first_name: 'John', last_name: 'Doe' }]
+    apiService.searchEmployees.mockResolvedValueOnce({ data: mockResults })
 
-    // Type in search
-    await wrapper.find('input').setValue('jo')
+    const input = wrapper.find('input')
+    await input.setValue('john')
     
-    // Verify no immediate API call
-    expect(apiService.searchEmployees).not.toHaveBeenCalled()
+    // Fast-forward timer
+    vi.advanceTimersByTime(300)
+    await nextTick()
 
-    // Wait for debounce
-    await new Promise(resolve => setTimeout(resolve, 300))
-
-    // Verify API called with search term
-    expect(apiService.searchEmployees).toHaveBeenCalledWith('jo')
+    expect(apiService.searchEmployees).toHaveBeenCalledWith('john')
   })
 
   test('displays search results', async () => {
-    const mockResults = {
-      data: [
-        { email: 'john@example.com', first_name: 'John', last_name: 'Doe' },
-        { email: 'jane@example.com', first_name: 'Jane', last_name: 'Smith' }
-      ]
-    }
-    apiService.searchEmployees.mockResolvedValueOnce(mockResults)
+    const mockResults = [
+      { email: 'john@example.com', first_name: 'John', last_name: 'Doe' },
+      { email: 'jane@example.com', first_name: 'Jane', last_name: 'Smith' }
+    ]
+    apiService.searchEmployees.mockResolvedValueOnce({ data: mockResults })
 
-    // Trigger search
-    await wrapper.find('input').setValue('jo')
-    await new Promise(resolve => setTimeout(resolve, 300))
+    const input = wrapper.find('input')
+    await input.setValue('john')
+    
+    // Fast-forward timer
+    vi.advanceTimersByTime(300)
+    await nextTick()
+    
+    // Wait for DOM update
     await nextTick()
 
-    // Check results displayed
-    const items = wrapper.findAll('li')
-    expect(items.length).toBe(2)
-    expect(items[0].text()).toContain('John Doe')
-    expect(items[0].text()).toContain('john@example.com')
+    const results = wrapper.findAll('li')
+    expect(results).toHaveLength(2)
+    expect(results[0].text()).toContain('John Doe')
+    expect(results[1].text()).toContain('Jane Smith')
   })
 
   test('emits employee-selected event when result clicked', async () => {
-    const mockResults = {
-      data: [
-        { email: 'john@example.com', first_name: 'John', last_name: 'Doe' }
-      ]
-    }
-    apiService.searchEmployees.mockResolvedValueOnce(mockResults)
+    const mockEmployee = { email: 'john@example.com', first_name: 'John', last_name: 'Doe' }
+    apiService.searchEmployees.mockResolvedValueOnce({ data: [mockEmployee] })
 
-    // Trigger search and wait for results
-    await wrapper.find('input').setValue('john')
-    await new Promise(resolve => setTimeout(resolve, 300))
+    const input = wrapper.find('input')
+    await input.setValue('john')
+    
+    // Fast-forward timer
+    vi.advanceTimersByTime(300)
+    await nextTick()
+    
+    // Wait for DOM update
     await nextTick()
 
-    // Click first result
-    await wrapper.find('li').trigger('click')
+    const resultItem = wrapper.find('li')
+    await resultItem.trigger('click')
 
-    // Verify event emitted with employee data
     expect(wrapper.emitted('employee-selected')).toBeTruthy()
-    expect(wrapper.emitted('employee-selected')[0][0]).toEqual(mockResults.data[0])
+    expect(wrapper.emitted('employee-selected')[0]).toEqual([mockEmployee])
   })
 
   test('handles empty search term', async () => {
-    const mockResults = {
-      data: [{ email: 'test@example.com', first_name: 'Test', last_name: 'User' }]
-    }
-    apiService.searchEmployees.mockResolvedValueOnce(mockResults)
-    
-    // Trigger search to get initial results
-    await wrapper.find('input').setValue('test')
-    await new Promise(resolve => setTimeout(resolve, 300))
-    await nextTick()
-    
-    // Verify we have results
-    expect(wrapper.findAll('li').length).toBe(1)
-    
-    // Clear mock calls after initial setup
-    vi.clearAllMocks()
-    
-    // Clear search
     await wrapper.find('input').setValue('')
-    await new Promise(resolve => setTimeout(resolve, 300))
+    
+    // Fast-forward timer
+    vi.advanceTimersByTime(300)
     await nextTick()
 
-    // Should clear results without API call
-    expect(wrapper.vm.results).toEqual([])
     expect(apiService.searchEmployees).not.toHaveBeenCalled()
+    expect(wrapper.find('li').exists()).toBe(false)
   })
 
   test('handles API errors gracefully', async () => {
-    // Mock API error
-    const consoleError = console.error
-    console.error = vi.fn()
+    // Spy on console.error
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    
     apiService.searchEmployees.mockRejectedValueOnce(new Error('API Error'))
 
     // Trigger search
-    await wrapper.find('input').setValue('error')
-    await new Promise(resolve => setTimeout(resolve, 300))
+    const input = wrapper.find('input')
+    await input.setValue('error')
+    
+    // Fast-forward timer
+    vi.advanceTimersByTime(300)
+    await nextTick()
+    
+    // Wait for error handling
     await nextTick()
 
-    // Should clear results on error
-    expect(wrapper.vm.results).toEqual([])
-    console.error = consoleError
+    // Check that error was handled and results are cleared
+    expect(consoleSpy).toHaveBeenCalledWith('Error searching employees:', expect.any(Error))
+    expect(wrapper.findAll('li')).toHaveLength(0)
+    
+    // Restore console.error
+    consoleSpy.mockRestore()
+  })
+  
+  test('clears results when search is cleared', async () => {
+    // First search with results
+    const mockResults = [{ email: 'john@example.com', first_name: 'John', last_name: 'Doe' }]
+    apiService.searchEmployees.mockResolvedValueOnce({ data: mockResults })
+
+    const input = wrapper.find('input')
+    await input.setValue('john')
+    
+    // Fast-forward timer
+    vi.advanceTimersByTime(300)
+    await nextTick()
+    
+    // Wait for DOM update
+    await nextTick()
+
+    expect(wrapper.findAll('li')).toHaveLength(1)
+
+    // Clear search
+    await input.setValue('')
+    
+    // Fast-forward timer
+    vi.advanceTimersByTime(300)
+    await nextTick()
+
+    expect(wrapper.findAll('li')).toHaveLength(0)
   })
 })

@@ -25,8 +25,14 @@ async function lookup() {
       results.value = [];
       return;
     }
-    const res = await apiService.searchEmployees(query.value);
-    results.value = res.data || [];
+    
+    try {
+      const res = await apiService.searchEmployees(query.value);
+      results.value = res.data || [];
+    } catch (error) {
+      console.error('Error searching employees:', error);
+      results.value = []; // Clear results on error
+    }
   }, 300);
 }
 </script>
