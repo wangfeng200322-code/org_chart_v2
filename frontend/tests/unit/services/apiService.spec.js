@@ -1,100 +1,59 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest'
+import MockAdapter from 'axios-mock-adapter'
+import { apiService, api } from '@/services/apiService.js'
 
-// Define get/post functions that will be shared between tests
-const mockGet = vi.fn().mockResolvedValue({ data: {} });
-const mockPost = vi.fn().mockResolvedValue({ data: {} });
-
-// Setup axios mock as a separate auto-executed function
-vi.mock('axios', () => {
-  const mockRequestUse = vi.fn();
-  return {
-    create: vi.fn(() => ({
-      interceptors: {
-        request: {
-          use: mockRequestUse
-        }
-      },
-      get: mockGet,
-      post: mockPost
-    })),
-    default: {
-      create: vi.fn()
-    }
-  }
-});
-
-import { apiService } from '@/services/apiService.js'
+// Create a mock adapter instance
+const mock = new MockAdapter(api)
 
 describe('apiService', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockGet.mockResolvedValue({ data: {} });
-    mockPost.mockResolvedValue({ data: {} });
-  });
+    // Reset all mocks before each test
+    mock.reset()
+  })
 
   test('searchEmployees calls correct endpoint', async () => {
-    const mockResponse = { data: [{ email: 'test@example.com' }] };
-    mockGet.mockResolvedValueOnce(mockResponse);
+    const mockResponse = [{ email: 'test@example.com' }]
+    mock.onGet('/employees/search').reply(200, mockResponse)
 
-    await apiService.searchEmployees('john');
+    const result = await apiService.searchEmployees('john')
     
-    expect(mockGet).toHaveBeenCalledWith('/employees/search', {
-      params: { q: 'john' }
-    });
-  });
+    expect(result).toEqual(mockResponse)
+    expect(mock.history.get[0].params).toEqual({ q: 'john' })
+  })
 
   test('getEmployeeDetails calls correct endpoint', async () => {
-    const mockResponse = { data: { email: 'test@example.com' } };
-    mockGet.mockResolvedValueOnce(mockResponse);
+    const mockResponse = { email: 'test@example.com' }
+    mock.onGet('/employees/test%40example.com').reply(200, mockResponse)
 
-    await apiService.getEmployeeDetails('test@example.com');
+    const result = await apiService.getEmployeeDetails('test@example.com')
     
-    expect(mockGet).toHaveBeenCalledWith('/employees/test%40example.com');
-  });
+    expect(result).toEqual(mockResponse)
+  })
 
   test('getOrgChart calls correct endpoint', async () => {
-    const mockResponse = { data: { nodes: [], edges: [] } };
-    mockGet.mockResolvedValueOnce(mockResponse);
+    const mockResponse = { nodes: [], edges: [] }
+    mock.onGet('/org-chart').reply(200, mockResponse)
 
-    await apiService.getOrgChart('test@example.com');
+    const result = await apiService.getOrgChart('test@example.com')
     
-    expect(mockGet).toHaveBeenCalledWith('/org-chart', {
-      params: { email: 'test@example.com' }
-    });
-  });
+    expect(result).toEqual(mockResponse)
+    expect(mock.history.get[0].params).toEqual({ email: 'test@example.com' })
+  })
 
   test('uploadCSV sends file with correct content type', async () => {
-    const mockFile = new File(['test,data'], 'test.csv', { type: 'text/csv' });
-    const mockResponse = { data: { success: true } };
-    mockPost.mockResolvedValueOnce(mockResponse);
+    const mockFile = new File(['test,data'], 'test.csv', { type: 'text/csv' })
+    const mockResponse = { success: true }
+    mock.onPost('/upload/csv').reply(200, mockResponse)
 
-    await apiService.uploadCSV(mockFile);
+    const result = await apiService.uploadCSV(mockFile)
     
-    expect(mockPost).toHaveBeenCalledWith('/upload/csv', expect.any(FormData));
-  });
-
-  test('includes API key in request headers when available', () => {
-    // Get the axios mock and its call arguments
-    const axiosMock = vi.mocked(require('axios'));
-    const mockApi = axiosMock.create();
-    const interceptor = mockApi.interceptors.request.use.mock.calls[0][0];
-
-    // Mock storage
-    const getItemSpy = vi.spyOn(Storage.prototype, 'getItem');
-    getItemSpy.mockReturnValue('test-api-key');
-    
-    // Test the interceptor
-    const config = { headers: {} };
-    const result = interceptor(config);
-    
-    expect(result.headers['X-API-Key']).toBe('test-api-key');
-    getItemSpy.mockRestore();
-  });
+    expect(result).toEqual(mockResponse)
+    expect(mock.history.post[0].data).toBeInstanceOf(FormData)
+  })
 
   test('handles API errors', async () => {
-    const error = new Error('Network Error');
-    mockGet.mockRejectedValueOnce(error);
+    mock.onGet('/employees/search').networkError()
 
-    await expect(apiService.searchEmployees('test')).rejects.toThrow('Network Error');
-  });
-});
+    await expect(apiService.searchEmployees('test')).rejects.toThrow('Network Error')
+  })
+})

@@ -84,3 +84,44 @@ org_chart_v2/
     └── workflows/
         └── ci.yml
 ```
+
+## Development Setup
+
+This project uses npm workspaces. To set up the development environment:
+
+1. Install dependencies from the root directory:
+   ```bash
+   npm install
+   ```
+
+2. Or install dependencies separately in each workspace:
+   ```bash
+   cd backend && npm install
+   cd ../frontend && npm install
+   ```
+
+3. Start the development servers:
+   ```bash
+   # In backend directory
+   npm run dev
+   
+   # In frontend directory
+   npm run dev
+   ```
+
+## Running Tests
+
+- Run all tests:
+  ```bash
+  npm test
+  ```
+
+- Run backend tests:
+  ```bash
+  cd backend && npm test
+  ```
+
+- Run frontend tests:
+  ```bash
+  cd frontend && npm test
+  ```

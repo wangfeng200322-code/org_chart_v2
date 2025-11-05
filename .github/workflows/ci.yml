@@ -15,11 +15,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
 
       - name: Backend install
         working-directory: backend
@@ -34,7 +33,7 @@ jobs:
         env:
           SKIP_DB_TESTS: '1'
           TEST_API_KEY: test-key
-        run: npm test --silent
+        run: npm test
 
       - name: Frontend build
         working-directory: frontend
@@ -59,7 +58,7 @@ jobs:
           push: false
           tags: local/org-chart-frontend:ci
 
-  Backend_tests:
+  backend-tests:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: eu-central-1
@@ -74,17 +73,16 @@ jobs:
           - 7687:7687
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
           
       - name: Install backend dependencies
-        run: |
-          cd backend
-          npm ci
+        working-directory: backend
+        run: npm ci
 
       - name: Wait for Neo4j to be ready
         shell: bash
@@ -100,18 +98,16 @@ jobs:
           done
           
       - name: Run backend unit tests
-        run: |
-          cd backend
-          npm test
+        working-directory: backend
+        run: npm test
         env:
           NEO4J_URI: bolt://localhost:7687
           NEO4J_USER: neo4j
           NEO4J_PASSWORD: testpassword
           
       - name: Run backend API tests
-        run: |
-          cd backend
-          npm run test:api
+        working-directory: backend
+        run: npm run test:api
         env:
           NEO4J_URI: bolt://localhost:7687
           NEO4J_USER: neo4j
@@ -121,22 +117,20 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
           
       - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm ci
+        working-directory: frontend
+        run: npm ci
           
       - name: Run frontend tests
-        run: |
-          cd frontend
-          npm test
+        working-directory: frontend
+        run: npm test
 
   e2e-tests:
     runs-on: ubuntu-latest
@@ -153,24 +147,23 @@ jobs:
           - 7687:7687
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
           
-      - name: Install Playwright
-        run: |
-          cd frontend
-          npm ci
-          npx playwright install --with-deps
-          
-      - name: Start backend
+      - name: Install dependencies
         run: |
           cd backend
           npm ci
-          npm start &
+          cd ../frontend
+          npm ci
+          
+      - name: Start backend
+        working-directory: backend
+        run: npm start &
         env:
           NEO4J_URI: bolt://localhost:7687
           NEO4J_USER: neo4j
@@ -178,9 +171,8 @@ jobs:
           PORT: 3000
           
       - name: Start frontend
-        run: |
-          cd frontend
-          npm run dev &
+        working-directory: frontend
+        run: npm run dev &
           
       - name: Wait for services
         run: |
@@ -188,6 +180,5 @@ jobs:
           curl -f http://localhost:3000/health || exit 1
           
       - name: Run E2E tests
-        run: |
-          cd frontend
-          npm run test:e2e
+        working-directory: frontend
+        run: npm run test:e2e
