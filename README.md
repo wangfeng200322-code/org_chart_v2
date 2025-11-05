@@ -14,6 +14,15 @@ A modern organization chart management system built with Vue 3, Node.js, and Neo
   - Visualize organization structure with interactive org chart
   - Navigate up and down the hierarchy by clicking nodes
 
+## Performance Improvements
+
+The application now includes a two-tier caching system to improve performance:
+
+1. **In-Memory LRU Cache**: Fast local cache for frequently accessed individual employee records
+2. **Redis Cache**: Shared cache for larger objects like organization charts and search results
+
+This caching layer significantly reduces database load and improves response times, especially for frequently accessed data.
+
 ## Tech Stack
 
 ### Frontend
@@ -24,6 +33,7 @@ A modern organization chart management system built with Vue 3, Node.js, and Neo
 ### Backend
 - Node.js (Express)
 - Neo4j AuraDB
+- Redis (caching)
 - API key authentication (AWS Parameter Store)
 
 ### Infrastructure

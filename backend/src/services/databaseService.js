@@ -1,7 +1,16 @@
 import { getDriver } from '../config/database.js';
 import neo4j from 'neo4j-driver';
+import cacheService from './cacheService.js';
 
 export async function findEmployeesByName(q, { limit = 25, offset = 0 } = {}) {
+  const cacheKey = `search:${q}:${limit}:${offset}`;
+  
+  // Try cache first
+  let cachedResult = await cacheService.get(cacheKey);
+  if (cachedResult) {
+    return cachedResult;
+  }
+  
   const session = getDriver().session();
   const safeLimit = Math.max(1, Math.min(Number(limit) || 25, 100));
   const safeOffset = Math.max(0, Number(offset) || 0);
@@ -13,24 +22,50 @@ export async function findEmployeesByName(q, { limit = 25, offset = 0 } = {}) {
        SKIP $skip LIMIT $limit`,
       { q, skip: neo4j.int(safeOffset), limit: neo4j.int(safeLimit) }
     );
-    return res.records.map((r) => r.get('e').properties);
+    const result = res.records.map((r) => r.get('e').properties);
+    
+    // Cache the result for 2 minutes (searches may change frequently)
+    await cacheService.set(cacheKey, result, 120);
+    
+    return result;
   } finally {
     await session.close();
   }
 }
 
 export async function getEmployeeByEmail(email) {
+  const cacheKey = `employee:${email}`;
+  
+  // Try cache first
+  let cachedEmployee = await cacheService.get(cacheKey);
+  if (cachedEmployee) {
+    return cachedEmployee;
+  }
+  
   const session = getDriver().session();
   try {
     const res = await session.run('MATCH (e:Employee {email: $email}) RETURN e LIMIT 1', { email });
     if (res.records.length === 0) return null;
-    return res.records[0].get('e').properties;
+    const employee = res.records[0].get('e').properties;
+    
+    // Cache the result for 5 minutes
+    await cacheService.set(cacheKey, employee, 300);
+    
+    return employee;
   } finally {
     await session.close();
   }
 }
 
 export async function getOrgChart(email, depth = 2) {
+  const cacheKey = `orgchart:${email}:${depth}`;
+  
+  // Try cache first
+  let cachedChart = await cacheService.get(cacheKey);
+  if (cachedChart) {
+    return cachedChart;
+  }
+  
   const session = getDriver().session();
   const safeDepth = Math.max(1, Math.min(Number(depth) || 2, 3));
   const cypher = `
@@ -56,7 +91,12 @@ export async function getOrgChart(email, depth = 2) {
     const res = await session.run(cypher, { email });
     if (res.records.length === 0) return { nodes: [], edges: [] };
     const record = res.records[0];
-    return { nodes: record.get('nodes'), edges: record.get('edges') };
+    const chart = { nodes: record.get('nodes'), edges: record.get('edges') };
+    
+    // Cache the result for 2 minutes (org charts may change more frequently)
+    await cacheService.set(cacheKey, chart, 120);
+    
+    return chart;
   } finally {
     await session.close();
   }
@@ -109,6 +149,9 @@ export async function importEmployees(rows) {
       await session.close();
     }
   }
+  
+  // Invalidate cache after import
+  await cacheService.flush();
 
   return imported;
 }
