@@ -33,7 +33,7 @@ jobs:
         env:
           SKIP_DB_TESTS: '1'
           TEST_API_KEY: test-key
-        run: npm test --silent
+        run: npm test
 
       - name: Frontend build
         working-directory: frontend

@@ -1,4 +1,4 @@
-import { initDatabase, closeDatabase } from '../src/config/database.js';
+const { initDatabase, closeDatabase } = require('../src/config/database.js');
 
 const skip = process.env.SKIP_DB_TESTS === '1';
 
