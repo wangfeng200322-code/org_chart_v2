@@ -42,6 +42,8 @@ services:
       # - NEO4J_CONNECTION_PARAM=${NEO4J_CONNECTION_PARAM:-/org-chart/neo4j_connection_string}
       - API_KEY_PARAM_PATH=${API_KEY_PARAM_PATH:-/org-chart/api-keys}
       - TEST_API_KEY=${TEST_API_KEY:-dev-key}
+      - LOG_LEVEL=DEBUG
+      - NODE_ENV=development
     depends_on:
       neo4j:
         condition: service_healthy  # Wait for Neo4j to be healthy
