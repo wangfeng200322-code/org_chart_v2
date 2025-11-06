@@ -63,6 +63,8 @@ services:
       - "8080:80"
     depends_on:
       - backend
+    environment:
+      - VITE_LOG_LEVEL=debug 
     # Add volumes to prevent node_modules issues
     volumes:
       - ../frontend:/app

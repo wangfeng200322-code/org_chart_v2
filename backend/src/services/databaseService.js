@@ -103,11 +103,14 @@ export async function getOrgChart(email, depth = 2) {
          upRels + downRels AS relLists
     UNWIND nodeLists AS nl
     UNWIND nl AS n
-    WITH collect(DISTINCT n) + [focus] AS nodes, relLists
+    WITH collect(DISTINCT n) AS nodesWithoutFocus, focus, relLists
+    WITH nodesWithoutFocus + [focus] AS allNodes, relLists
+    UNWIND allNodes AS node
+    WITH collect(DISTINCT node) AS uniqueNodes, relLists
     UNWIND relLists AS rl
     UNWIND rl AS r
-    WITH nodes, collect(DISTINCT r) AS rels
-    RETURN [n IN nodes | n { .email, .first_name, .last_name, .department, .role }] AS nodes,
+    WITH uniqueNodes, collect(DISTINCT r) AS rels
+    RETURN [n IN uniqueNodes | n { .email, .first_name, .last_name, .department, .role }] AS nodes,
            [r IN rels | { source: startNode(r).email, target: endNode(r).email }] AS edges
   `;
   try {
