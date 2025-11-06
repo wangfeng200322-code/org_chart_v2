@@ -1,13 +1,8 @@
 import axios from 'axios';
 
 export const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api' });
-
-function getApiKey() {
-  return sessionStorage.getItem('apiKey') || localStorage.getItem('apiKey') || getCookie('apiKey');
-}
-
 api.interceptors.request.use((config) => {
-  const key = getApiKey();
+  const key = sessionStorage.getItem('apiKey') || localStorage.getItem('apiKey') || getCookie('apiKey');
   if (key) config.headers['X-API-Key'] = key;
   return config;
 });
