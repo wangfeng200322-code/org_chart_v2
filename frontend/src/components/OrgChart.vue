@@ -18,9 +18,9 @@ const emit = defineEmits(['node-clicked', 'back']);
 const _sigmaInstance = { value: null };
 const _graph = { value: null };
 
-// Function to assign hierarchical positions to nodes using a simple tree layout
+// Function to assign hierarchical positions to nodes with managers above reports
 function assignHierarchicalPositions(graph) {
-  // Find root nodes (nodes with no incoming edges)
+  // Find root nodes (nodes with no incoming edges - meaning no managers)
   const rootNodes = graph.filterNodes((node, attr) => {
     return graph.inDegree(node) === 0;
   });
@@ -40,53 +40,67 @@ function assignHierarchicalPositions(graph) {
     }
   }
 
-  // Assign positions using breadth-first approach
+  // Assign positions using a proper tree layout algorithm
   const visited = new Set();
   const nodeSpacingX = 150;
   const levelSpacingY = 120;
   
-  // BFS queue with node, level, and index within level
-  const queue = [{ node: rootNode, level: 0, index: 0 }];
-  const levelCounts = {}; // Track number of nodes at each level
-  const nodePositions = new Map();
+  // Determine the level of each node using BFS from root
+  const nodeLevels = new Map();
+  const queue = [{ node: rootNode, level: 0 }];
   
-  // First pass: determine the structure
   while (queue.length > 0) {
     const { node, level } = queue.shift();
     
     if (visited.has(node)) continue;
     visited.add(node);
     
-    // Count nodes at this level
-    if (!levelCounts[level]) levelCounts[level] = 0;
-    const indexAtLevel = levelCounts[level];
-    levelCounts[level]++;
+    // Assign level to this node
+    nodeLevels.set(node, level);
     
-    // Store position information
-    nodePositions.set(node, { level, index: indexAtLevel });
-    
-    // Add children to queue
-    const children = graph.outNeighbors(node);
-    children.forEach(child => {
-      if (!visited.has(child)) {
-        queue.push({ node: child, level: level + 1, index: 0 });
+    // Add children (reports) to queue with incremented level
+    const reports = graph.outNeighbors(node);
+    reports.forEach(report => {
+      if (!visited.has(report)) {
+        queue.push({ node: report, level: level + 1 });
       }
     });
   }
   
-  // Second pass: assign actual coordinates
-  visited.clear();
-  nodePositions.forEach((posInfo, node) => {
-    const { level, index } = posInfo;
-    const nodesAtLevel = levelCounts[level];
+  // Count nodes at each level for proper centering
+  const levelCounts = {};
+  nodeLevels.forEach((level, node) => {
+    if (!levelCounts[level]) levelCounts[level] = 0;
+    levelCounts[level]++;
+  });
+  
+  // Track current index at each level for positioning
+  const levelIndices = {};
+  Object.keys(levelCounts).forEach(level => {
+    levelIndices[level] = 0;
+  });
+  
+  // Position each node
+  nodeLevels.forEach((level, node) => {
+    // Get current index at this level
+    const indexAtLevel = levelIndices[level];
+    levelIndices[level]++;
     
-    // Center the nodes at each level
+    // Calculate position
+    const nodesAtLevel = levelCounts[level];
     const startX = -((nodesAtLevel - 1) * nodeSpacingX) / 2;
-    const x = startX + index * nodeSpacingX;
-    const y = level * levelSpacingY;
+    const x = startX + indexAtLevel * nodeSpacingX;
+    const y = level * levelSpacingY; // Managers at lower Y values (top of screen)
     
     graph.setNodeAttribute(node, 'x', x);
-    graph.setNodeAttribute(node, 'y', y);
+    graph.setNodeAttribute(node, 'y', -y);
+  });
+  
+  // Log some information for debugging
+  logger.debug('Tree layout info', { 
+    rootNode, 
+    totalNodes: graph.order,
+    levels: Object.keys(levelCounts).map(level => ({ level, count: levelCounts[level] }))
   });
 }
 
