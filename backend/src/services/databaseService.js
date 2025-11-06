@@ -1,6 +1,7 @@
 import { getDriver } from '../config/database.js';
 import neo4j from 'neo4j-driver';
 import cacheService from './cacheService.js';
+import logger from '../utils/logger.js';
 
 export async function findEmployeesByName(q, { limit = 25, offset = 0 } = {}) {
   const cacheKey = `search:${q}:${limit}:${offset}`;
@@ -8,8 +9,11 @@ export async function findEmployeesByName(q, { limit = 25, offset = 0 } = {}) {
   // Try cache first
   let cachedResult = await cacheService.get(cacheKey);
   if (cachedResult) {
+    logger.debug('findEmployeesByName: cache hit', { cacheKey });
     return cachedResult;
   }
+  
+  logger.info('findEmployeesByName: querying database', { query: q, limit, offset });
   
   const session = getDriver().session();
   const safeLimit = Math.max(1, Math.min(Number(limit) || 25, 100));
@@ -24,10 +28,15 @@ export async function findEmployeesByName(q, { limit = 25, offset = 0 } = {}) {
     );
     const result = res.records.map((r) => r.get('e').properties);
     
+    logger.debug('findEmployeesByName: query successful', { resultCount: result.length });
+    
     // Cache the result for 2 minutes (searches may change frequently)
     await cacheService.set(cacheKey, result, 120);
     
     return result;
+  } catch (error) {
+    logger.error('findEmployeesByName: database query failed', { error: error.message, query: q });
+    throw error;
   } finally {
     await session.close();
   }
@@ -39,19 +48,30 @@ export async function getEmployeeByEmail(email) {
   // Try cache first
   let cachedEmployee = await cacheService.get(cacheKey);
   if (cachedEmployee) {
+    logger.debug('getEmployeeByEmail: cache hit', { cacheKey });
     return cachedEmployee;
   }
+  
+  logger.info('getEmployeeByEmail: querying database', { email });
   
   const session = getDriver().session();
   try {
     const res = await session.run('MATCH (e:Employee {email: $email}) RETURN e LIMIT 1', { email });
-    if (res.records.length === 0) return null;
+    if (res.records.length === 0) {
+      logger.info('getEmployeeByEmail: employee not found', { email });
+      return null;
+    }
     const employee = res.records[0].get('e').properties;
+    
+    logger.debug('getEmployeeByEmail: query successful', { email });
     
     // Cache the result for 5 minutes
     await cacheService.set(cacheKey, employee, 300);
     
     return employee;
+  } catch (error) {
+    logger.error('getEmployeeByEmail: database query failed', { error: error.message, email });
+    throw error;
   } finally {
     await session.close();
   }
@@ -63,8 +83,11 @@ export async function getOrgChart(email, depth = 2) {
   // Try cache first
   let cachedChart = await cacheService.get(cacheKey);
   if (cachedChart) {
+    logger.debug('getOrgChart: cache hit', { cacheKey });
     return cachedChart;
   }
+  
+  logger.info('getOrgChart: querying database', { email, depth });
   
   const session = getDriver().session();
   const safeDepth = Math.max(1, Math.min(Number(depth) || 2, 3));
@@ -89,14 +112,26 @@ export async function getOrgChart(email, depth = 2) {
   `;
   try {
     const res = await session.run(cypher, { email });
-    if (res.records.length === 0) return { nodes: [], edges: [] };
+    if (res.records.length === 0) {
+      logger.info('getOrgChart: no records found', { email });
+      return { nodes: [], edges: [] };
+    }
     const record = res.records[0];
     const chart = { nodes: record.get('nodes'), edges: record.get('edges') };
+    
+    logger.debug('getOrgChart: query successful', { 
+      email, 
+      nodeCount: chart.nodes.length, 
+      edgeCount: chart.edges.length 
+    });
     
     // Cache the result for 2 minutes (org charts may change more frequently)
     await cacheService.set(cacheKey, chart, 120);
     
     return chart;
+  } catch (error) {
+    logger.error('getOrgChart: database query failed', { error: error.message, email });
+    throw error;
   } finally {
     await session.close();
   }
@@ -105,6 +140,8 @@ export async function getOrgChart(email, depth = 2) {
 // removed unused batchCreateEmployees in favor of importEmployees
 
 export async function importEmployees(rows) {
+  logger.info('importEmployees: starting import', { rowCount: rows.length });
+  
   const driver = getDriver();
   const chunkSize = 1000;
   let imported = 0;
@@ -122,6 +159,11 @@ export async function importEmployees(rows) {
       manager_name: r.manager_name || null,
       manager_email: r.manager_email || null
     }));
+
+    logger.debug('importEmployees: processing chunk', { 
+      chunkIndex: i, 
+      chunkSize: chunk.length 
+    });
 
     const session = driver.session();
     try {
@@ -145,36 +187,68 @@ export async function importEmployees(rows) {
         );
       });
       imported += chunk.length;
+      
+      logger.debug('importEmployees: chunk processed successfully', { 
+        chunkIndex: i, 
+        importedCount: chunk.length 
+      });
+    } catch (error) {
+      logger.error('importEmployees: chunk processing failed', { 
+        error: error.message, 
+        chunkIndex: i 
+      });
+      throw error;
     } finally {
       await session.close();
     }
   }
   
+  logger.info('importEmployees: invalidating cache after import');
+  
   // Invalidate cache after import
   await cacheService.flush();
 
+  logger.info('importEmployees: import completed successfully', { importedCount: imported });
+  
   return imported;
 }
 
 export async function getCEO() {
+  logger.debug('getCEO: querying database');
+  
   const session = getDriver().session();
   try {
     const res = await session.run('MATCH (e:Employee) WHERE NOT ( ()-[:MANAGES]->(e) ) RETURN e LIMIT 1');
-    if (res.records.length === 0) return null;
-    return res.records[0].get('e').properties;
+    if (res.records.length === 0) {
+      logger.info('getCEO: CEO not found');
+      return null;
+    }
+    
+    const ceo = res.records[0].get('e').properties;
+    logger.debug('getCEO: query successful');
+    
+    return ceo;
+  } catch (error) {
+    logger.error('getCEO: database query failed', { error: error.message });
+    throw error;
   } finally {
     await session.close();
   }
 }
 
 export async function healthCheck() {
+  logger.debug('healthCheck: checking database connectivity');
+  
   try {
     const driver = getDriver();
     const session = driver.session();
     await session.run('RETURN 1');
     await session.close();
+    
+    logger.debug('healthCheck: database connectivity OK');
     return true;
-  } catch (_) {
+  } catch (error) {
+    logger.error('healthCheck: database connectivity failed', { error: error.message });
     return false;
   }
 }
