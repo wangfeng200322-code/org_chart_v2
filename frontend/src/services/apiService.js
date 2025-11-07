@@ -74,6 +74,17 @@ export const apiService = {
     const form = new FormData();
     form.append('file', file);
     return api.post('/upload/csv', form).then((r) => r.data);
+  },
+  getReports: () => {
+    logger.info('Fetching reports');
+    return api.get('/reports')
+      .then((r) => {
+        logger.debug('Reports response', {
+          reportCount: r.data?.reports?.length,
+          fullResponse: r.data
+        });
+        return r.data;
+      });
   }
 };
 

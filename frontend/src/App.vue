@@ -50,13 +50,14 @@ import ApiKeyPanel from './components/ApiKeyPanel.vue';
 import ReportDownloads from './components/ReportDownloads.vue';
 import { watch } from 'vue';
 
-watch(currentView, (newView) => {
-  console.log('currentView changed to:', newView);
-});
 const currentView = ref('search');
 const selectedEmployee = ref(null);
 const selectedEmployeeEmail = ref('');
 const isAdmin = ref(false);
+
+watch(currentView, (newView) => {
+  console.log('currentView changed to:', newView);
+});
 
 onMounted(() => {
   checkAuth();

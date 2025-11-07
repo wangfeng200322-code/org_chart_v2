@@ -31,18 +31,19 @@
     </div>
 
     <div v-if="result" class="result-message" :class="{ success: result.success, error: !result.success }">
-      <h3>{{ result.success ? '✅ Success' : '❌ Error' }}</h3>
+      <h3>{{ result.success ? '✅ Success' : '⚠️ Partial Success' }}</h3>
       <p>{{ result.message }}</p>
       <div v-if="result.summary" class="summary">
-        <p><strong>Total:</strong> {{ result.summary.total }}</p>
-        <p><strong>Valid:</strong> {{ result.summary.valid }}</p>
-        <p v-if="result.summary.invalid > 0"><strong>Invalid:</strong> {{ result.summary.invalid }}</p>
+        <p><strong>Total Rows:</strong> {{ result.summary.total }}</p>
+        <p><strong>Valid Rows:</strong> {{ result.summary.valid }}</p>
+        <p><strong>Imported Rows:</strong> {{ result.summary.imported }}</p>
+        <p v-if="result.summary.invalid > 0"><strong>Invalid Rows:</strong> {{ result.summary.invalid }}</p>
       </div>
       <div v-if="result.errors && result.errors.length > 0" class="errors">
         <h4>Validation Errors:</h4>
         <ul>
           <li v-for="(error, index) in result.errors.slice(0, 10)" :key="index">
-            {{ error.errors?.join(', ') || JSON.stringify(error) }}
+            Row {{ error.row }}: {{ error.errors?.join(', ') || JSON.stringify(error) }}
           </li>
         </ul>
         <p v-if="result.errors.length > 10">... and {{ result.errors.length - 10 }} more errors</p>
@@ -97,7 +98,7 @@ async function uploadFile() {
     const response = await apiService.uploadCSV(selectedFile.value);
     result.value = response;
     
-    if (response.success) {
+    if (response.imported > 0) {
       selectedFile.value = null;
       if (fileInput.value) {
         fileInput.value.value = '';
@@ -199,9 +200,9 @@ h1 {
 }
 
 .result-message.error {
-  background: #f8d7da;
-  border: 1px solid #f5c6cb;
-  color: #721c24;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  color: #856404;
 }
 
 .instructions {

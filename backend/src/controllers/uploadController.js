@@ -46,12 +46,13 @@ export async function uploadCSV(req, res, next) {
       // Don't fail the entire upload if report generation fails
     }
 
-    const success = result.imported > 0 && parsed.errors.length === 0;
+    // Modified success condition - upload is successful if at least some records were imported
+    const success = result.imported > 0;
     
-    logger.info(`Upload process completed with status: ${success ? 'success' : 'partial success with errors'}`);
+    logger.info(`Upload process completed with status: ${success ? 'success' : 'failed'}`);
     res.json({
       success,
-      message: success ? 'Import completed successfully' : 'Import completed with validation errors',
+      message: success ? 'Import completed successfully' : 'Import failed - no records imported',
       summary,
       imported: result.imported,
       errors: parsed.errors

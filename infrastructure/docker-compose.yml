@@ -65,10 +65,10 @@ services:
       - backend
     environment:
       - VITE_LOG_LEVEL=debug 
-    # Add volumes to prevent node_modules issues
+    # For development, we want to use the built dist files, not source files
+    # The nginx container serves files from /usr/share/nginx/html, which is where the build output goes
     volumes:
-      - ../frontend:/app
-      - /app/node_modules
+      - ../frontend/dist:/usr/share/nginx/html
 
   
 
