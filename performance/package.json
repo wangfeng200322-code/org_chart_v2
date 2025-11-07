@@ -1,0 +1,23 @@
+{
+  "name": "org-chart-performance-tools",
+  "version": "1.0.0",
+  "description": "Performance testing tools for the org-chart application",
+  "main": "csv-generator.js",
+  "scripts": {
+    "generate": "node csv-generator.js",
+    "validate": "node validate-csv.js"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^8.0.0",
+    "csv-parse": "^5.5.0",
+    "neo4j-driver": "^5.13.0"
+  },
+  "keywords": [
+    "performance",
+    "testing",
+    "csv",
+    "org-chart"
+  ],
+  "author": "Org Chart Team",
+  "license": "MIT"
+}
