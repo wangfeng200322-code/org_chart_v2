@@ -33,3 +33,4 @@ NOTES.md
 node_modules
 backend/reports/*.*
 sample*.csv
+*/employees*.csv

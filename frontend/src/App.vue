@@ -9,6 +9,13 @@
         <button @click="currentView = 'upload'" :class="{ active: currentView === 'upload' }" v-if="isAdmin">
           Upload CSV
         </button>
+        <button
+          @click="currentView = 'reports'"
+          :class="{ active: currentView === 'reports' }"
+          v-if="isAdmin"
+        >
+          Download Reports
+        </button>
         <ApiKeyPanel @key-saved="checkAuth" />
       </nav>
     </header>
@@ -28,6 +35,7 @@
         @back="currentView = 'details'"
         @node-clicked="handleNodeClicked"
       />
+      <ReportDownloads v-if="currentView === 'reports'" />
     </main>
   </div>
 </template>
@@ -39,7 +47,12 @@ import EmployeeDetails from './components/EmployeeDetails.vue';
 import OrgChart from './components/OrgChart.vue';
 import CSVUpload from './components/CSVUpload.vue';
 import ApiKeyPanel from './components/ApiKeyPanel.vue';
+import ReportDownloads from './components/ReportDownloads.vue';
+import { watch } from 'vue';
 
+watch(currentView, (newView) => {
+  console.log('currentView changed to:', newView);
+});
 const currentView = ref('search');
 const selectedEmployee = ref(null);
 const selectedEmployeeEmail = ref('');

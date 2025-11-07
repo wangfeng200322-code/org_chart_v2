@@ -73,7 +73,7 @@ export const apiService = {
   uploadCSV: (file) => {
     const form = new FormData();
     form.append('file', file);
-    return api.post('/upload/csv', form).then((r) => r.data.data);
+    return api.post('/upload/csv', form).then((r) => r.data);
   }
 };
 
