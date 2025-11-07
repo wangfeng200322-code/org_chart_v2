@@ -14,7 +14,7 @@ import { useSigmaGraph, assignHierarchicalPositions } from '../composables/useOr
 import { drawNameCard } from '../utils/orgChartRenderer.js';
 
 // Ensure the roundRect method is available for canvas rendering
-import '../utils/orgChartRenderer.js';
+import '../utils/canvasUtils.js';
 
 const props = defineProps({ employeeEmail: String });
 const emit = defineEmits(['node-clicked', 'back']);
@@ -89,11 +89,9 @@ async function renderChart() {
       });
       
       // Override the default label renderer
-      const originalRenderLabels = sigmaInstance.value.renderLabels;
       sigmaInstance.value.renderLabels = function() {
         const context = this.canvasContexts.labels;
         const cameraState = this.camera.getState();
-        const viewportSize = this.getViewportSize();
         const zoom = cameraState.ratio;
         const settings = this.settings;
         
