@@ -134,16 +134,28 @@ export function useSigmaGraph() {
       allowInvalidContainer: true,
       renderLabels: true,
       labelRenderedSizeThreshold: 0, // Always render labels
-      labelDensity: 1
+      labelDensity: 1,
+      // Reduce sensitivity to minimize event listener impact
+      zoomingRatio: 1.7,
+      doubleClickZoomingRatio: 1.7,
+      // Enable progressive rendering for better performance
+      enableEdgeClickEvents: false,
+      enableEdgeWheelEvents: false,
+      enableEdgeHoverEvents: false
     });
 
     // Handle node click
-    sigmaInstance.value.on('clickNode', ({ node, event }) => {
+    sigmaInstance.value.on('clickNode', ({ node }) => {
       // Toggle focus state
       if (focusedNode.value === node) {
         focusedNode.value = null; // Unfocus if clicking the same node
       } else {
         focusedNode.value = node; // Focus on the clicked node
+      }
+      
+      // Call the provided callback
+      if (typeof onNodeClick === 'function') {
+        onNodeClick(node);
       }
       
       // Refresh the view to update node rendering

@@ -67,7 +67,8 @@ async function renderChart() {
     // Add edges
     edges.forEach((e, idx) => {
       const edgeId = `e${idx}-${e.source}-${e.target}`;
-      if (graph.value.hasNode(e.source) && graph.value.hasNode(e.target) && !graph.value.hasEdge(edgeId)) {
+      // Check if both nodes exist and the edge doesn't already exist
+      if (graph.value.hasNode(e.source) && graph.value.hasNode(e.target) && !graph.value.hasEdge(e.source, e.target)) {
         graph.value.addEdgeWithKey(edgeId, e.source, e.target, { 
           size: 1,
           type: 'arrow'
@@ -83,10 +84,7 @@ async function renderChart() {
     // Initialize Sigma if needed
     const container = document.getElementById('sigma-container');
     if (!sigmaInstance.value) {
-      initializeGraph(container, (node) => {
-        const data = graph.value.getNodeAttributes(node);
-        emit('node-clicked', data.email || node);
-      });
+      initializeGraph(container, handleNodeClick);
       
       // Override the default label renderer
       sigmaInstance.value.renderLabels = function() {
@@ -107,6 +105,13 @@ async function renderChart() {
           }
         });
       };
+      
+      // Improve performance by disabling unnecessary features
+      if (sigmaInstance.value) {
+        sigmaInstance.value.setSetting('labelRenderer', 'canvas');
+        //sigmaInstance.value.setSetting('defaultDrawNodeHover', false);
+        //sigmaInstance.value.setSetting('defaultDrawEdgeHover', false);
+      }
     } else {
       setGraph(graph.value);
     }
@@ -115,6 +120,80 @@ async function renderChart() {
     console.error('Failed to render org chart:', error);
     if (!graph.value) graph.value = new Graph();
     else graph.value.clear();
+  }
+}
+
+async function handleNodeClick(node) {
+  const data = graph.value.getNodeAttributes(node);
+  // Check if the clicked node has any outgoing edges (subordinates)
+  const hasSubordinates = graph.value.outDegree(node) > 0;
+  
+  if (hasSubordinates) {
+    // If the node has subordinates, emit the node-clicked event
+    emit('node-clicked', data.email || node);
+  } else {
+    // If the node is a leaf (no subordinates), fetch more data for this node
+    try {
+      logger.info('Fetching extended org chart for leaf node', { email: data.email });
+      const res = await apiService.getOrgChart(data.email, 2); // Fetch with depth 2
+      const { nodes, edges } = res || { nodes: [], edges: [] };
+      
+      let nodesAdded = false;
+      let edgesAdded = false;
+      
+      // Add new nodes
+      nodes.forEach((n) => {
+        const id = n.email;
+        if (graph.value.hasNode(id)) return;
+        
+        // Create a comprehensive label with employee details
+        const fullName = `${n.first_name || ''} ${n.last_name || ''}`.trim() || id;
+        const label = [
+          fullName,
+          n.role || 'Role not specified',
+          n.department || 'Department not specified',
+          n.email || '',
+          n.phone || ''
+        ].join('\n');
+        
+        graph.value.addNode(id, {
+          label: label,
+          email: id,
+          department: n.department,
+          role: n.role,
+          phone: n.phone,
+          first_name: n.first_name,
+          last_name: n.last_name,
+          size: 20,
+          x: 0,
+          y: 0
+        });
+        
+        nodesAdded = true;
+      });
+
+      // Add new edges
+      edges.forEach((e, idx) => {
+        // Check if both nodes exist and the edge doesn't already exist
+        if (graph.value.hasNode(e.source) && graph.value.hasNode(e.target) && !graph.value.hasEdge(e.source, e.target)) {
+          const edgeId = `e${graph.value.edges().length + idx}-${e.source}-${e.target}`;
+          graph.value.addEdgeWithKey(edgeId, e.source, e.target, { 
+            size: 1,
+            type: 'arrow'
+          });
+          edgesAdded = true;
+        }
+      });
+
+      // Only re-assign positions and update graph if new nodes or edges were added
+      if ((nodesAdded || edgesAdded) && graph.value.order > 0) {
+        assignHierarchicalPositions(graph.value, props.employeeEmail);
+        setGraph(graph.value);
+      }
+    } catch (error) {
+      logger.error('Failed to fetch extended org chart:', error);
+      console.error('Failed to fetch extended org chart:', error);
+    }
   }
 }
 

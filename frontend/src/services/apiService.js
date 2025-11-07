@@ -58,9 +58,9 @@ export const apiService = {
       });
   },
   getEmployeeDetails: (email) => api.get(`/employees/${encodeURIComponent(email)}`).then((r) => r.data.data),
-  getOrgChart: (email) => {
-    logger.info('Fetching org chart', { email });
-    return api.get('/org-chart', { params: { email } })
+  getOrgChart: (email, depth = 2) => {
+    logger.info('Fetching org chart', { email, depth });
+    return api.get('/org-chart', { params: { email, depth } })
       .then((r) => {
         logger.debug('Org chart response', { 
           nodeCount: r.data?.data?.nodes?.length,
